@@ -1,146 +1,101 @@
-/**
- * new Promise((resolve, reject) => {})
- * p.then((prev) => { return value }, (reason) => { return value })
- * p.catch((reason) => { return value })
- * Promise.resolve()
- * Promise.reject()
- */
+import { nextTick } from "./nextTick.js"
+import { rejectWhenAbnormal, isPromise } from "./helper.js"
 
-const STATUS_PENDING = "pending"
-const STATUS_FULFILLED = "fulfilled"
-const STATUS_REJECTED = "rejected"
+export const PENDING = 0
+export const FULFILLED = 1
+export const REJECTED = 2
 
-class Promise {
-  _promiseState = STATUS_PENDING
+export class MyPromise {
+  _promiseState = PENDING
   get promiseState() {
     return this._promiseState
   }
-  /**
-   * 状态发生变更时，调用注册的回调函数
-   */
-  set promiseState(v) {
-    if (this._promiseState !== STATUS_PENDING) {
+  set promiseState(state) {
+    if (this._promiseState !== PENDING) {
       return
     }
+    this._promiseState = state
 
-    this._promiseState = v
-
-    this.callbacks.forEach(({ onFulfilled, onRejected }) => {
-      if (v === STATUS_FULFILLED) {
-        onFulfilled && onFulfilled()
+    this.stateChangeHandlers.forEach((handler) => {
+      if (state === FULFILLED) {
+        handler.handleFulfilledAsync
       } else {
-        onRejected && onRejected()
+        handler.handleRejectedAsync
       }
     })
   }
 
   /**
    * 需要传递给下一个 promise 的值
-   * 赋值时机：
-   * 1. new Promise(resolve, reject) 调用 resolve/reject 时接受的值
-   * 2. then(onFulfilled, onRejected)/catch(onRejected) 调用 onFulfilled/onRejected 时的返回值
+   * 赋值时机：new Promise((resolve, reject) => {}) 调用 resolve/reject 时设置的值
+   * 如果该值是 promise，则 .then() 调用时将 onFulfilled/onRejected 挂载到该 promise
    */
   promiseResult = undefined
-  callbacks = []
 
   /**
-   * 1. 声明 resolve, reject
-   * 2. 安全执行函数
+   * { handleFulfilledAsync, handleRejectedAsync }
+   * .then() 时候注册
+   * promiseState 变更的时候执行
    */
+  stateChangeHandlers = []
+
   constructor(executor) {
-    const resolve = (val) => {
-      this.promiseResult = val
-      this.promiseState = STATUS_FULFILLED
+    const resolve = (result) => {
+      this.promiseResult = result
+      this.promiseState = FULFILLED
+    }
+    const reject = (result) => {
+      this.promiseResult = result
+      this.promiseState = REJECTED
     }
 
-    const reject = (reason) => {
-      this.promiseResult = reason
-      this.promiseState = STATUS_REJECTED
-    }
-
-    safeDoSettle(executor, resolve, reject)
+    rejectWhenAbnormal(() => {
+      executor(resolve, reject)
+    }, reject)
   }
 
-  /**
-   * 返回新的 promise
-   * 保存回调
-   */
   then(onFulfilled, onRejected) {
-    /**
-     * next promise
-     */
-    let resolve, reject
-    let p = new Promise((_resolve, _reject) => {
-      resolve = _resolve
-      reject = _reject
+    let nextResolve, nextReject
+    const nextPromise = new MyPromise((resolve, reject) => {
+      nextResolve = resolve
+      nextReject = reject
     })
 
-    const doResolve = () => {
-      process.nextTick(() => {
-        safeRun(() => {
-          const result = onFulfilled(this.promiseResult)
-          resolve(result)
-        }, reject)
+    // 改变 nextPromise 的状态并向其传递值
+    const handleFulfilledAsync = () =>
+      handleFulfilledOrRejectedAsync(onFulfilled)
+
+    const handleRejectedAsync = () => handleFulfilledOrRejectedAsync(onRejected)
+
+    const handleFulfilledOrRejectedAsync = (handler) => {
+      nextTick(() => {
+        rejectWhenAbnormal(() => {
+          const nextPromiseResult = handler(this.promiseResult)
+          if (isPromise(nextPromiseResult)) {
+            nextPromiseResult.then(nextResolve, nextReject)
+          } else {
+            nextResolve(nextPromiseResult)
+          }
+        }, nextReject)
       })
     }
 
-    const doReject = () => {
-      process.nextTick(() => {
-        safeRun(() => {
-          const result = onRejected(this.promiseResult)
-          resolve(result)
-        }, reject)
+    // 根据状态处理对 nextPromise 的状态变更
+    if (this.promiseState === PENDING) {
+      this.stateChangeHandlers.push({
+        handleFulfilledAsync,
+        handleRejectedAsync,
       })
+    } else if (this.promiseState === FULFILLED) {
+      handleFulfilledAsync()
+    } else {
+      handleRejectedAsync()
     }
 
-    // 注入回调，等待状态变更
-    if (this._promiseState === STATUS_PENDING) {
-      this.callbacks.push({
-        onFulfilled: doResolve,
-        onRejected: doReject,
-      })
-    }
-    // fulfilled
-    else if (this._promiseState === STATUS_FULFILLED) {
-      doResolve()
-    }
-    // rejected
-    else {
-      doReject()
-    }
-
-    return p
+    return nextPromise
   }
 
-  catch(onRejected) {
-    return this.then(() => {}, onRejected)
-  }
-
-  //   static resolve(val) {
-  //     return new Promise((resolve) => {
-  //       resolve(val)
-  //     })
-  //   }
-
-  //   static reject(val) {
-  //     return new Promise((_, reject) => {
-  //       reject(val)
-  //     })
-  //   }
-}
-
-function safeDoSettle(executor, resolve, reject) {
-  try {
-    executor(resolve, reject)
-  } catch (e) {
-    reject(e)
-  }
-}
-
-function safeRun(executor, onError) {
-  try {
-    executor()
-  } catch (err) {
-    onError(err)
+  catch(onRjected) {
+    return this.then(() => {}, onRjected)
   }
 }
