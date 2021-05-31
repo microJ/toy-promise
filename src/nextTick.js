@@ -18,11 +18,19 @@
 
 export var nextTick = undefined
 
-if (self.MutationObserver) {
+let _globalThis = null
+
+try {
+  _globalThis = globalThis
+} catch (err) {
+  _globalThis = self
+}
+
+if (_globalThis.MutationObserver) {
   nextTick = getNextTickByMutationObserver()
 }
 //
-else if (self.MessageChannel) {
+else if (_globalThis.MessageChannel) {
   nextTick = getNextTickByMessageChannel()
 }
 //

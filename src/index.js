@@ -18,9 +18,9 @@ export class MyPromise {
 
     this.stateChangeHandlers.forEach((handler) => {
       if (state === FULFILLED) {
-        handler.handleFulfilledAsync
+        handler.handleFulfilledAsync()
       } else {
-        handler.handleRejectedAsync
+        handler.handleRejectedAsync()
       }
     })
   }

@@ -40,5 +40,9 @@ p2.then(() => {
 })
 p2.then(() => {
   console.log("p2 then 2")
+  return 1
+}).then((res) => {
+  console.log(res === 1)
 })
+
 console.log(p2)

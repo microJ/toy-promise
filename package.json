@@ -1,0 +1,15 @@
+{
+  "name": "toy-promise",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "repository": "git@github.com:microJ/toy-promise.git",
+  "author": "microJ <clear2Jay@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
+  "devDependencies": {
+    "jest": "^27.0.3"
+  }
+}
