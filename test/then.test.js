@@ -1,5 +1,7 @@
 import { describe, test, expect } from "@jest/globals"
-import { MyPromise, PENDING, FULFILLED, REJECTED } from "../src/index"
+import { MyPromise } from "../src/index"
+import { PENDING, FULFILLED, REJECTED } from "../src/helper"
+
 describe("then", () => {
   test("accept constructor value", () => {
     new MyPromise((resolve) => {
@@ -41,5 +43,39 @@ describe("then", () => {
       expect(a1.join() === a2.join()).toBe(true)
       done()
     })
+  })
+
+  test("pass fulfilled promise", (done) => {
+    var p = MyPromise.resolve().then(
+      () =>
+        new MyPromise((resolve) => {
+          setTimeout(() => resolve(1))
+        })
+    )
+
+    expect(p.promiseResult).toBe(undefined)
+    expect(p.promiseState).toBe(PENDING)
+    setTimeout(() => {
+      expect(p.promiseResult).toBe(1)
+      expect(p.promiseState).toBe(FULFILLED)
+      done()
+    }, 10)
+  })
+
+  test("pass rejected promise", (done) => {
+    var p = MyPromise.resolve().then(
+      () =>
+        new MyPromise((_, reject) => {
+          setTimeout(() => reject(1))
+        })
+    )
+
+    expect(p.promiseResult).toBe(undefined)
+    expect(p.promiseState).toBe(PENDING)
+    setTimeout(() => {
+      expect(p.promiseResult).toBe(1)
+      expect(p.promiseState).toBe(REJECTED)
+      done()
+    }, 10)
   })
 })

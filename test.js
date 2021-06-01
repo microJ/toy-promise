@@ -1,4 +1,5 @@
-import { MyPromise, PENDING, FULFILLED, REJECTED } from "./src/index.js"
+import { MyPromise } from "./src/index.js"
+import { PENDING, FULFILLED, REJECTED } from "../src/helper.js"
 
 window.originPromise = Promise
 window.Promise = MyPromise
