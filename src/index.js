@@ -1,9 +1,12 @@
 import { nextTick } from "./nextTick.js"
-import { rejectWhenAbnormal, isPromise } from "./helper.js"
-
-export const PENDING = 0
-export const FULFILLED = 1
-export const REJECTED = 2
+import {
+  rejectWhenAbnormal,
+  isPromise,
+  handleNextResolveOrNextRejectWithResultPromise,
+  PENDING,
+  FULFILLED,
+  REJECTED,
+} from "./helper.js"
 
 export class MyPromise {
   _promiseState = PENDING
@@ -50,7 +53,26 @@ export class MyPromise {
     }
 
     rejectWhenAbnormal(() => {
-      executor(resolve, reject)
+      executor(
+        (val) => {
+          if (isPromise(val)) {
+            handleNextResolveOrNextRejectWithResultPromise(val, resolve, reject)
+          } else {
+            resolve(val)
+          }
+        },
+        (reason) => {
+          if (isPromise(reason)) {
+            handleNextResolveOrNextRejectWithResultPromise(
+              reason,
+              resolve,
+              reject
+            )
+          } else {
+            reject(reason)
+          }
+        }
+      )
     }, reject)
   }
 
@@ -69,14 +91,19 @@ export class MyPromise {
 
     const handleFulfilledOrRejectedAsync = (handler) => {
       nextTick(() => {
+        let nextPromiseResult
         rejectWhenAbnormal(() => {
-          const nextPromiseResult = handler(this.promiseResult)
-          if (isPromise(nextPromiseResult)) {
-            nextPromiseResult.then(nextResolve, nextReject)
-          } else {
-            nextResolve(nextPromiseResult)
-          }
+          nextPromiseResult = handler(this.promiseResult)
         }, nextReject)
+        if (isPromise(nextPromiseResult)) {
+          handleNextResolveOrNextRejectWithResultPromise(
+            nextPromiseResult,
+            nextResolve,
+            nextReject
+          )
+        } else {
+          nextResolve(nextPromiseResult)
+        }
       })
     }
 
@@ -97,5 +124,28 @@ export class MyPromise {
 
   catch(onRjected) {
     return this.then(() => {}, onRjected)
+  }
+
+  /**
+   * static methods
+   */
+  static resolve(val) {
+    return new MyPromise((resolve, reject) => {
+      if (isPromise(val)) {
+        handleNextResolveOrNextRejectWithResultPromise(val, resolve, reject)
+      } else {
+        resolve(val)
+      }
+    })
+  }
+
+  static reject(reason) {
+    return new MyPromise((resolve, reject) => {
+      if (isPromise(reason)) {
+        handleNextResolveOrNextRejectWithResultPromise(reason, resolve, reject)
+      } else {
+        reject(reason)
+      }
+    })
   }
 }
