@@ -190,4 +190,48 @@ export class MyPromise {
       })
     })
   }
+
+  static allSettled(promiseList) {
+    return new MyPromise((resolve) => {
+      const result = []
+      let resolvedCount = 0
+
+      const tryResolveAll = () => {
+        if (resolvedCount === promiseList.length) {
+          resolve(result)
+        }
+      }
+
+      promiseList.forEach((v, i) => {
+        if (isPromise(v)) {
+          handleNextResolveOrNextRejectWithResultPromise(
+            v,
+            (val) => {
+              resolvedCount++
+              result[i] = {
+                status: "fulfilled",
+                value: val,
+              }
+              tryResolveAll()
+            },
+            (reason) => {
+              resolvedCount++
+              result[i] = {
+                status: "rejected",
+                reason: reason,
+              }
+              tryResolveAll()
+            }
+          )
+        } else {
+          resolvedCount++
+          result[i] = {
+            status: "fulfilled",
+            value: v,
+          }
+          tryResolveAll()
+        }
+      })
+    })
+  }
 }
