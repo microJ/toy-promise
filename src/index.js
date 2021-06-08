@@ -126,6 +126,17 @@ export class MyPromise {
     return this.then(() => {}, onRjected)
   }
 
+  finally(onFinally) {
+    return this.then(
+      () => {
+        onFinally()
+      },
+      () => {
+        onFinally()
+      }
+    )
+  }
+
   /**
    * static methods
    */
