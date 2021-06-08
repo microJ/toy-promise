@@ -159,4 +159,35 @@ export class MyPromise {
       }
     })
   }
+
+  static all(promiseList) {
+    return new MyPromise((resolve, reject) => {
+      const result = []
+      let resolvedCount = 0
+
+      const tryResolveAll = () => {
+        if (resolvedCount === promiseList.length) {
+          resolve(result)
+        }
+      }
+
+      promiseList.forEach((v, i) => {
+        if (isPromise(v)) {
+          handleNextResolveOrNextRejectWithResultPromise(
+            v,
+            (val) => {
+              resolvedCount++
+              result[i] = val
+              tryResolveAll()
+            },
+            reject
+          )
+        } else {
+          resolvedCount++
+          result[i] = v
+          tryResolveAll()
+        }
+      })
+    })
+  }
 }
