@@ -268,6 +268,9 @@ export class MyPromise {
               tryRejectAny()
             }
           )
+          if (p.promiseState === FULFILLED) {
+            return true
+          }
         } else {
           tryResolveAny(p)
           return true

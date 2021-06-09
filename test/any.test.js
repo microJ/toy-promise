@@ -19,6 +19,19 @@ describe("any", () => {
     )
   })
 
+  test("muiltiple values, have fulfilled promise", (done) => {
+    MyPromise.any([
+      MyPromise.reject(1),
+      MyPromise.resolve(2),
+      3,
+      MyPromise.resolve(4),
+      5,
+    ]).then((res) => {
+      expect(res).toBe(2)
+      done()
+    })
+  })
+
   test("all rejected", (done) => {
     var p1 = MyPromise.any([
       MyPromise.reject(4),
