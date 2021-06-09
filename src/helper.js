@@ -14,6 +14,12 @@ export function isPromise(p) {
   return p && p.then && typeof p.then === "function"
 }
 
+/**
+ * 根据其他 promise 变更当前 promise 状态
+ * @param {*} resultPromise 
+ * @param {*} resolve 
+ * @param {*} reject 
+ */
 export function handleNextResolveOrNextRejectWithResultPromise(
   resultPromise,
   resolve,

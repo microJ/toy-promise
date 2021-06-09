@@ -20,8 +20,8 @@ nextTick is supported by [@microJ](https://github.com/microJ/nextTick)
 | .reject()            |  ✅  |
 | .prototype.then()    |  ✅  |
 | .ptototype.catch()   |  ✅  |
-| .ptototype.finally() |      |
-| .all()               |      |
-| .allSettled()        |      |
-| .any()               |      |
-| .race()              |      |
+| .ptototype.finally() |  ✅  |
+| .all()               |  ✅  |
+| .allSettled()        |  ✅  |
+| .any()               |  ✅  |
+| .race()              |  ✅  |

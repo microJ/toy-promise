@@ -171,10 +171,10 @@ export class MyPromise {
         }
       }
 
-      promiseList.forEach((v, i) => {
-        if (isPromise(v)) {
+      promiseList.forEach((p, i) => {
+        if (isPromise(p)) {
           handleNextResolveOrNextRejectWithResultPromise(
-            v,
+            p,
             (val) => {
               resolvedCount++
               result[i] = val
@@ -184,7 +184,7 @@ export class MyPromise {
           )
         } else {
           resolvedCount++
-          result[i] = v
+          result[i] = p
           tryResolveAll()
         }
       })
@@ -202,10 +202,10 @@ export class MyPromise {
         }
       }
 
-      promiseList.forEach((v, i) => {
-        if (isPromise(v)) {
+      promiseList.forEach((p, i) => {
+        if (isPromise(p)) {
           handleNextResolveOrNextRejectWithResultPromise(
-            v,
+            p,
             (val) => {
               resolvedCount++
               result[i] = {
@@ -227,7 +227,7 @@ export class MyPromise {
           resolvedCount++
           result[i] = {
             status: "fulfilled",
-            value: v,
+            value: p,
           }
           tryResolveAll()
         }
@@ -255,10 +255,10 @@ export class MyPromise {
         }
       }
 
-      promiseList.some((v, i) => {
-        if (isPromise(v)) {
+      promiseList.some((p, i) => {
+        if (isPromise(p)) {
           handleNextResolveOrNextRejectWithResultPromise(
-            v,
+            p,
             (val) => {
               tryResolveAny(val)
             },
@@ -269,7 +269,47 @@ export class MyPromise {
             }
           )
         } else {
-          tryResolveAny(v)
+          tryResolveAny(p)
+          return true
+        }
+      })
+    })
+  }
+
+  /**
+   * The Promise.race() method returns a promise that fulfills or rejects
+   * as soon as one of the promises in an iterable fulfills or rejects,
+   * with the value or reason from that promise.
+   * @param {*} promiseList
+   * @returns
+   */
+  static race(promiseList) {
+    return new MyPromise((resolve, reject) => {
+      let done = false
+      const tryResolveRace = (value) => {
+        if (!done) {
+          resolve(value)
+          done = true
+        }
+      }
+      const tryRejectRace = (reason) => {
+        if (!done) {
+          reject(reason)
+          done = true
+        }
+      }
+      promiseList.some((p) => {
+        if (isPromise(p)) {
+          handleNextResolveOrNextRejectWithResultPromise(
+            p,
+            tryResolveRace,
+            tryRejectRace
+          )
+          if (p.promiseState !== PENDING) {
+            return true
+          }
+        } else {
+          resolve(p)
           return true
         }
       })
