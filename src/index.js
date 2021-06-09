@@ -234,4 +234,45 @@ export class MyPromise {
       })
     })
   }
+
+  static any(promiseList) {
+    return new MyPromise((resolve, reject) => {
+      let settled = false
+      let reasonList = []
+      let rejectedCount = 0
+
+      const tryResolveAny = (val) => {
+        if (!settled) {
+          resolve(val)
+          settled = true
+        }
+      }
+
+      const tryRejectAny = () => {
+        if (!settled && rejectedCount === promiseList.length) {
+          reject(new AggregateError(reasonList, "All Promises rejected"))
+          settled = true
+        }
+      }
+
+      promiseList.some((v, i) => {
+        if (isPromise(v)) {
+          handleNextResolveOrNextRejectWithResultPromise(
+            v,
+            (val) => {
+              tryResolveAny(val)
+            },
+            (reason) => {
+              rejectedCount++
+              reasonList[i] = reason
+              tryRejectAny()
+            }
+          )
+        } else {
+          tryResolveAny(v)
+          return true
+        }
+      })
+    })
+  }
 }
